@@ -88,17 +88,14 @@ input {
 .bot-avatar {
   display: block;
   flex: 0 0 auto;
-  object-fit: cover;
-  overflow: hidden;
-  border: 1px solid #eff1f2;
-  border-radius: 50%;
-  background: #ffffff;
+  object-fit: contain;
+  border: 0;
+  background: transparent;
 }
 
 .bot-avatar--large {
   width: 80px;
   height: 80px;
-  box-shadow: 0 8px 28px rgb(15 20 25 / 8%);
 }
 
 .access-form {
