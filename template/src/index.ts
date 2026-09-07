@@ -27,12 +27,19 @@ type CreateMessageBody = {
   pass?: unknown;
 };
 
+type SessionBody = {
+  pass?: unknown;
+};
+
 type ReplyBody = {
   id?: unknown;
   reply?: unknown;
 };
 
 const encoder = new TextEncoder();
+const DEFAULT_USER_NAME = "家人";
+const DEFAULT_BOT_NAME = "Grok";
+const DEFAULT_BOT_AVATAR_URL = "/bot-avatar.svg";
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -55,6 +62,14 @@ async function handleApi(
   try {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: sameOriginHeaders() });
+    }
+
+    if (url.pathname === "/api/config" && request.method === "GET") {
+      return json(getPublicBotConfig(env));
+    }
+
+    if (url.pathname === "/api/session" && request.method === "POST") {
+      return await createSession(request, env);
     }
 
     if (url.pathname === "/api/messages" && request.method === "POST") {
@@ -80,6 +95,13 @@ async function handleApi(
   }
 }
 
+async function createSession(request: Request, env: Env): Promise<Response> {
+  const body = await readJson<SessionBody>(request);
+  const pass = optionalText(body.pass, 4);
+  verifyAccessPass(env, pass);
+  return json({ ok: true, ...getPublicBotConfig(env) });
+}
+
 async function createMessage(
   request: Request,
   env: Env,
@@ -87,9 +109,12 @@ async function createMessage(
   url: URL,
 ): Promise<Response> {
   const body = await readJson<CreateMessageBody>(request);
-  const name = validateText(body.name, "name", 1, 40);
+  const name =
+    body.name === undefined
+      ? DEFAULT_USER_NAME
+      : validateText(body.name, "name", 1, 40);
   const text = validateText(body.text, "text", 1, 1000);
-  const pass = optionalText(body.pass, 120);
+  const pass = optionalText(body.pass, 4);
 
   const sessionKey = await getSessionKey(env, name, pass);
   const id = crypto.randomUUID();
@@ -110,8 +135,10 @@ async function createMessage(
 }
 
 async function listMessages(url: URL, env: Env): Promise<Response> {
-  const name = validateText(url.searchParams.get("name"), "name", 1, 40);
-  const pass = optionalText(url.searchParams.get("pass"), 120);
+  const name = url.searchParams.has("name")
+    ? validateText(url.searchParams.get("name"), "name", 1, 40)
+    : DEFAULT_USER_NAME;
+  const pass = optionalText(url.searchParams.get("pass"), 4);
   const after = parseAfter(url.searchParams.get("after"));
   const sessionKey = await getSessionKey(env, name, pass);
 
@@ -206,16 +233,50 @@ async function postWebhook(
 
 async function getSessionKey(env: Env, name: string, pass: string | undefined): Promise<string> {
   const normalizedName = name.trim().toLocaleLowerCase();
+  const verifiedPass = verifyAccessPass(env, pass);
 
+  return sha256Hex(`locked:${verifiedPass}:${normalizedName}`);
+}
+
+function verifyAccessPass(env: Env, pass: string | undefined): string {
   if (!env.ACCESS_PASS) {
     throw new HttpError(503, "access_pass_not_configured");
   }
 
-  if (!pass || !safeEqual(pass, env.ACCESS_PASS)) {
+  if (!/^\d{4}$/.test(env.ACCESS_PASS)) {
+    throw new HttpError(503, "access_pass_invalid_configuration");
+  }
+
+  if (!pass || !/^\d{4}$/.test(pass) || !safeEqual(pass, env.ACCESS_PASS)) {
     throw new HttpError(401, "access_pass_required");
   }
 
-  return sha256Hex(`locked:${pass}:${normalizedName}`);
+  return pass;
+}
+
+function getPublicBotConfig(env: Env): { botName: string; botAvatarUrl: string } {
+  const configuredName = env.BOT_NAME?.trim() || "";
+  const botName =
+    configuredName && configuredName.length <= 80
+      ? configuredName
+      : DEFAULT_BOT_NAME;
+  const configuredAvatar = env.BOT_AVATAR_URL?.trim() || "";
+  const isSameOriginPath =
+    configuredAvatar.startsWith("/") && !configuredAvatar.startsWith("//");
+  const botAvatarUrl =
+    isSameOriginPath || isHttpsUrl(configuredAvatar)
+      ? configuredAvatar
+      : DEFAULT_BOT_AVATAR_URL;
+
+  return { botName, botAvatarUrl };
+}
+
+function isHttpsUrl(value: string): boolean {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 async function sha256Hex(value: string): Promise<string> {

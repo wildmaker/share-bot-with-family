@@ -7,6 +7,8 @@ When running the skill, **copy this directory as-is**. Do **not** regenerate `pu
 Only customize at deploy time:
 - Create a new D1 DB and put its `database_id` into `wrangler.toml`
 - Optionally rename the Worker `name` if the account already has `family-ai-chat-shell`
+- Set `BOT_NAME` and `BOT_AVATAR_URL` from the Bot selected by the sharing Skill
+- If the avatar cannot be fetched, keep `BOT_AVATAR_URL = "/bot-avatar.svg"`
 - Set secrets: `ACCESS_PASS` (4 digits, system-generated), `WEBHOOK_URL`, `WEBHOOK_SECRET`, `REPLY_SECRET`
 
 UI files (must ship unchanged):

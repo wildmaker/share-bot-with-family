@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "wrangler dev --local --port 43217",
     "deploy": "wrangler deploy --minify",
-    "check": "tsc --noEmit && wrangler deploy --dry-run",
+    "check": "wrangler types && tsc --noEmit && wrangler deploy --dry-run",
     "types": "wrangler types",
     "db:migrate:local": "wrangler d1 migrations apply family-qa-chat --local",
     "db:migrate:remote": "wrangler d1 migrations apply family-qa-chat --remote"

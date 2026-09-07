@@ -15,9 +15,36 @@ Server-side only:
 | `WEBHOOK_SECRET_HEADER` | No | Non-secret header name. Defaults to `Authorization`; configured in `wrangler.toml`. |
 | `REPLY_SECRET` | Yes | Shared secret required by `POST /api/reply`. |
 | `REPLY_SECRET_HEADER` | No | Non-secret header name. Defaults to `Authorization`; configured in `wrangler.toml`. |
-| `ACCESS_PASS` | Yes | Required shared family passphrase. Message reads/writes are disabled until configured. |
+| `ACCESS_PASS` | Yes | Exactly 4 digits. Message reads/writes are disabled until configured correctly. |
+| `BOT_NAME` | No | Public Bot display name. Defaults to `Grok`. |
+| `BOT_AVATAR_URL` | No | Public HTTPS or same-origin avatar URL. Defaults to `/bot-avatar.svg`. |
 
 Secrets are never returned to the frontend.
+
+## `GET /api/config`
+
+Returns the public Bot identity used by the access and chat screens.
+
+```json
+{
+  "botName": "旅行助手",
+  "botAvatarUrl": "https://example.com/travel-bot.png"
+}
+```
+
+Invalid or missing avatar configuration falls back to the bundled Grok-style triangle avatar. The browser also applies this fallback if the configured image fails to load.
+
+## `POST /api/session`
+
+Verifies the 4-digit sharing passcode before the chat UI opens.
+
+```json
+{
+  "pass": "0427"
+}
+```
+
+On success it returns `200 OK` with `{ "ok": true, "botName": "...", "botAvatarUrl": "..." }`.
 
 ## `POST /api/messages`
 
@@ -32,17 +59,16 @@ Content-Type: application/json
 
 ```json
 {
-  "name": "妈妈",
   "text": "今天晚饭吃什么？",
-  "pass": "family-passphrase"
+  "pass": "0427"
 }
 ```
 
 Fields:
 
-- `name` string, required, 1-40 trimmed characters.
+- `name` string, optional, 1-40 trimmed characters. Defaults to `家人`.
 - `text` string, required, 1-1000 trimmed characters.
-- `pass` string, required. Must match server `ACCESS_PASS`.
+- `pass` string, required. Must be 4 digits and match server `ACCESS_PASS`.
 
 ### Response
 
@@ -88,13 +114,13 @@ List recent messages for one identity. Used for history and polling.
 ### Request
 
 ```http
-GET /api/messages?name=%E5%A6%88%E5%A6%88&pass=family-passphrase&after=1720000000000
+GET /api/messages?pass=0427&after=1720000000000
 ```
 
 Query parameters:
 
-- `name` string, required, 1-40 trimmed characters.
-- `pass` string, required. Must match server `ACCESS_PASS`.
+- `name` string, optional, 1-40 trimmed characters. Defaults to `家人`.
+- `pass` string, required. Must be 4 digits and match server `ACCESS_PASS`.
 - `after` integer milliseconds timestamp, optional. If set, returns rows whose `created_at` or `updated_at` is greater than this value. If omitted, returns the latest 30 rows for the identity.
 
 ### Response
@@ -176,4 +202,4 @@ Common status codes:
 - `404`: route or message id not found.
 - `415`: request body must be JSON.
 - `500`: reply endpoint missing `REPLY_SECRET`, or storage error.
-- `503`: `ACCESS_PASS` is missing in the Worker environment, so message reads/writes are disabled.
+- `503`: `ACCESS_PASS` is missing or is not exactly 4 digits, so message reads/writes are disabled.

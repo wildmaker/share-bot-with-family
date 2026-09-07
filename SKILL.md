@@ -2,8 +2,8 @@
 name: Share Bot With Family
 description: >-
   当用户要把某个 Grok Bot/Agent 分享给家人（网页口令进聊、走自己订阅 Token、不给家人开独立会员）时使用。三阶段：准备工作（必须原样部署
-  Skill 自带 template/ 固定 UI，禁止现写页面）→ 选要分享的 Bot → 在目标 Bot 建 webhook 自动化并返回链接与系统生成的
-  4 位数字口令；配置完成后创建「Bot 分享助手」。
+  Skill 自带 template/ 固定 UI，禁止现写页面）→ 选 Bot 并读取名称/头像 → 在目标 Bot 建 webhook 自动化并返回链接与系统生成的
+  4 位数字口令；头像读取失败时使用模板内置的 Grok 三角头像；配置完成后创建「Bot 分享助手」。
 ---
 # Share Bot With Family
 
@@ -22,11 +22,13 @@ description: >-
   - `template/public/_routes.json`
 - Worker / 配置：`template/src/index.ts`、`template/wrangler.toml`、`template/migrations/`、`template/package.json`、`template/INTERFACE.md`
 
-**阶段一部署时必须整目录原样复制 `template/`。** 不得「根据描述自己生成一个聊天页」。只允许改：
+**阶段一部署时必须整目录原样复制 `template/`。** 不得「根据描述自己生成一个聊天页」。只允许在部署副本中改：
 
 1. `wrangler.toml` 里新建 D1 后的 `database_id`（模板里是占位符 `REPLACE_AFTER_wrangler_d1_create`）
 2. 若账号已占用同名 Worker，可改 `name`
-3. secrets：`ACCESS_PASS` / `WEBHOOK_*` / `REPLY_SECRET`
+3. Bot 公开身份变量：`BOT_NAME` / `BOT_AVATAR_URL`
+4. 若头像只能以文件形式获取，可把它存到部署副本的 `public/`，并让 `BOT_AVATAR_URL` 指向该同源文件
+5. secrets：`ACCESS_PASS` / `WEBHOOK_*` / `REPLY_SECRET`
 
 否则不同用户 run 出来的页面会不一致，这是缺陷，不是特性。
 
@@ -52,11 +54,13 @@ description: >-
    - **复制本 Skill 的 `template/` 全文**到工作目录（不要手写 UI，不要从别处另起炉灶）
    - `wrangler d1 create` 新建库 → 填入 `wrangler.toml` 的 `database_id` → `migrations apply` → `wrangler deploy`
    - 关键 API 以 `template/INTERFACE.md` 为准（同域）：
-     - `POST /api/messages`：`{ name, text, pass }` → 202 + webhook
-     - `GET /api/messages?name&pass&after?`：轮询历史
+     - `GET /api/config`：读取 Bot 公开名称与头像
+     - `POST /api/session`：验证 4 位数字口令，成功后进入聊天页
+     - `POST /api/messages`：`{ text, pass }` → 202 + webhook
+     - `GET /api/messages?pass&after?`：轮询历史
      - `POST /api/reply`：Bot 回写（带 `REPLY_SECRET`）
    - 部署后记下 **公开聊天页 URL** 与 **reply URL**（`https://<host>/api/reply`）
-   - 自检：打开聊天页，确认标题为「家人问问 AI」、样式与模板一致（若页面看起来是另一套设计 → 说明没拷模板，退回重做）
+   - 自检：打开聊天页，确认首屏只显示 Bot 名称、头像和 4 格明文数字口令输入框（若页面看起来是另一套设计 → 说明没拷模板，退回重做）
 
 3. **生成密钥材料（全部系统生成，勿问用户要口令）**
    - `ACCESS_PASS`：恰好 **4 位数字**（`0000`–`9999`，均匀随机；可允许前导零）
@@ -76,7 +80,15 @@ description: >-
 
 1. 列出当前用户可见的 Bots/Agents（名称 + 一句话职责；排除已是「Bot 分享助手」的实例除非用户点名）。
 2. 用问题组件让用户选一个（选项必须是真实存在的 Bot；不确定就先查再问）。
-3. 用户选定后，记录：`target_bot_id`、`target_bot_name`。不要在未选定时创建自动化。
+3. 用户选定后，运行时读取并记录：
+   - `target_bot_id`
+   - `target_bot_name`：优先使用平台返回的当前名称，缺失时用 `Grok`
+   - `target_bot_avatar`：优先使用平台返回的当前头像
+4. 头像处理必须遵循：
+   - 公开且稳定的 HTTPS URL：可直接写入 `BOT_AVATAR_URL`
+   - 需要鉴权、会过期或仅返回图片数据：下载到部署副本的 `public/`，使用同源路径
+   - 读取、下载或格式校验任一步失败：不要阻断分享，使用模板内置 `/bot-avatar.svg`
+5. 不要在未选定时创建自动化。
 
 ---
 
@@ -96,6 +108,8 @@ description: >-
 2. **把 Worker 接到这条 routine**
    - 将 routine 的 `WEBHOOK_URL`（及如需要的 `WEBHOOK_SECRET`）写入 Worker 环境
    - 确认 `ACCESS_PASS` 已是阶段一生成的 4 位数字
+   - 把阶段二得到的名称写入 `BOT_NAME`
+   - 把可用头像 URL/同源路径写入 `BOT_AVATAR_URL`；获取失败时明确写 `/bot-avatar.svg`
    - `REPLY_SECRET` 与 routine 回写一致
    - 热更新：改 Bot 人设/技能后无需重新发版家人页（UI 仍必须保持模板原样）
 
@@ -108,13 +122,14 @@ description: >-
    - 聊天页链接
    - **4 位数字口令**（系统生成的那个）
    - 被分享的 Bot 名称
+   - 若头像获取失败而使用默认三角头像，无需阻断交付，但要简短说明
    - 一句安全提醒：只给家人；口令等于大门钥匙
 
 5. **创建「Bot 分享助手」（若尚无）**
    - `CreateAgent`：
      - 名称：`Bot 分享助手`（若重名则加区分后缀）
-     - 描述：专门帮用户把指定 Grok Bot 分享给家人。默认运行 Skill「Share Bot With Family」：先完成 Cloudflare/Worker/密钥等准备，再询问要分享哪个 Bot，再在目标 Bot 建 webhook 自动化、写入配置、返回链接与系统生成的 4 位数字口令。不替用户乱分享；部署与密钥注入需确认；不把 token 贴进聊天。
-   - 用 `SendToAgent` 告诉它：请把「Share Bot With Family」当作默认工作流；口令一律系统生成 4 位数字；**部署必须原样使用 Skill 自带 `template/`，禁止现写 UI**。
+     - 描述：专门帮用户把指定 Grok Bot 分享给家人。默认运行 Skill「Share Bot With Family」：先完成 Cloudflare/Worker/密钥等准备，再询问要分享哪个 Bot，运行时读取 Bot 名称和头像，再在目标 Bot 建 webhook 自动化、写入配置、返回链接与系统生成的 4 位数字口令；头像获取失败使用内置 Grok 三角头像。不替用户乱分享；部署与密钥注入需确认；不把 token 贴进聊天。
+   - 用 `SendToAgent` 告诉它：请把「Share Bot With Family」当作默认工作流；口令一律系统生成 4 位数字；分享时读取 Bot 名称与头像，头像失败回退内置三角头像；**部署必须原样使用 Skill 自带 `template/`，禁止现写 UI**。
    - 若助手已存在：跳过创建，只确保它知道使用本 Skill。
 
 6. **收尾**

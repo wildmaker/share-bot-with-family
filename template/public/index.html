@@ -3,70 +3,123 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>家人问问 AI</title>
+    <meta name="theme-color" content="#ffffff" />
+    <title>和 Grok 聊天</title>
     <meta
       name="description"
-      content="一个给家人共用的 AI 问答聊天壳，消息由 Cloudflare Worker 保存并转发给外部机器人。"
+      content="使用 4 位分享口令，和家人分享的 Bot 聊天。"
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main class="app-shell">
-      <section class="hero" aria-labelledby="app-title">
-        <p class="eyebrow">给家人的小问答</p>
-        <h1 id="app-title">家人问问 AI</h1>
-        <p class="hero-copy">
-          输入名字、家庭口令和问题，先把消息安心放下。机器人想好后，回答会自动出现在这里。
-        </p>
-      </section>
-
-      <section class="identity-card" aria-label="聊天身份">
-        <label for="name-input">你的名字 <span aria-hidden="true">*</span></label>
-        <input
-          id="name-input"
-          name="name"
-          autocomplete="name"
-          required
-          maxlength="40"
-          placeholder="例如：妈妈、小明"
-        />
-
-        <label for="pass-input">家庭口令 <span aria-hidden="true">*</span></label>
-        <input
-          id="pass-input"
-          name="pass"
-          autocomplete="off"
-          maxlength="120"
-          placeholder="请输入家庭共享口令"
-          required
-          type="password"
-        />
-        <p id="identity-help" class="hint">家庭口令是必填项，只会发给同源 API，不会写入浏览器代码。</p>
-      </section>
-
-      <section class="chat-card" aria-label="聊天">
-        <div id="status-line" class="status-line" role="status" aria-live="polite">
-          先填名字和家庭口令，再开始提问吧。
+      <section id="access-screen" class="access-screen" aria-labelledby="access-title">
+        <div class="bot-identity bot-identity--access">
+          <img
+            class="bot-avatar bot-avatar--large"
+            data-bot-avatar
+            src="/bot-avatar.svg"
+            alt=""
+            width="80"
+            height="80"
+          />
+          <h1 id="access-title" data-bot-name>Grok</h1>
+          <p>输入分享口令</p>
         </div>
 
+        <form id="access-form" class="access-form" autocomplete="off">
+          <fieldset>
+            <legend class="sr-only">4 位分享口令</legend>
+            <div id="passcode-fields" class="passcode-fields">
+              <input
+                data-pass-index="0"
+                aria-label="口令第 1 位"
+                autocomplete="one-time-code"
+                inputmode="numeric"
+                maxlength="1"
+                pattern="[0-9]"
+                type="text"
+              />
+              <input
+                data-pass-index="1"
+                aria-label="口令第 2 位"
+                inputmode="numeric"
+                maxlength="1"
+                pattern="[0-9]"
+                type="text"
+              />
+              <input
+                data-pass-index="2"
+                aria-label="口令第 3 位"
+                inputmode="numeric"
+                maxlength="1"
+                pattern="[0-9]"
+                type="text"
+              />
+              <input
+                data-pass-index="3"
+                aria-label="口令第 4 位"
+                inputmode="numeric"
+                maxlength="1"
+                pattern="[0-9]"
+                type="text"
+              />
+            </div>
+          </fieldset>
+          <button class="sr-only" type="submit">进入聊天</button>
+          <p id="access-status" class="access-status" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section id="chat-screen" class="chat-screen" aria-label="聊天" hidden>
+        <header class="chat-header">
+          <div class="bot-identity bot-identity--header">
+            <img
+              class="bot-avatar bot-avatar--header"
+              data-bot-avatar
+              src="/bot-avatar.svg"
+              alt=""
+              width="36"
+              height="36"
+            />
+            <div>
+              <strong data-bot-name>Grok</strong>
+              <span>Bot</span>
+            </div>
+          </div>
+        </header>
+
         <div id="message-list" class="message-list" aria-live="polite" aria-relevant="additions text">
-          <div class="empty-state">
-            <strong>今天想问点什么？</strong>
-            <span>可以问健康小知识、做饭灵感、旅行安排，或让机器人帮忙解释复杂事情。</span>
+          <div id="empty-state" class="empty-state">
+            <img
+              class="bot-avatar bot-avatar--empty"
+              data-bot-avatar
+              src="/bot-avatar.svg"
+              alt=""
+              width="48"
+              height="48"
+            />
+            <strong>有什么想问的？</strong>
           </div>
         </div>
 
+        <div id="status-line" class="sr-only" role="status" aria-live="polite"></div>
+
         <form id="message-form" class="composer" autocomplete="off">
-          <label class="sr-only" for="question-input">输入问题</label>
+          <label class="sr-only" for="question-input">输入消息</label>
           <textarea
             id="question-input"
             name="question"
-            rows="2"
+            rows="1"
             maxlength="1000"
-            placeholder="把问题写在这里..."
+            placeholder="问点什么"
             required
           ></textarea>
-          <button id="send-button" type="submit">发送</button>
+          <button id="send-button" type="submit" aria-label="发送消息">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M12 19V5m0 0-6 6m6-6 6 6" />
+            </svg>
+          </button>
         </form>
       </section>
     </main>

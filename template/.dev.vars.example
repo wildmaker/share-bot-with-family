@@ -1,4 +1,4 @@
 WEBHOOK_URL=https://example.com/cursor-grok-routine-webhook
 WEBHOOK_SECRET=Bearer replace-with-webhook-secret-if-needed
 REPLY_SECRET=replace-with-long-random-reply-secret
-ACCESS_PASS=family-passphrase
+ACCESS_PASS=0427
