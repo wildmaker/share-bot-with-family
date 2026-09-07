@@ -1,0 +1,19 @@
+{
+  "name": "family-ai-chat-shell",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local --port 43217",
+    "deploy": "wrangler deploy --minify",
+    "check": "tsc --noEmit && wrangler deploy --dry-run",
+    "types": "wrangler types",
+    "db:migrate:local": "wrangler d1 migrations apply family-qa-chat --local",
+    "db:migrate:remote": "wrangler d1 migrations apply family-qa-chat --remote"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "typescript": "latest",
+    "wrangler": "latest"
+  }
+}

@@ -1,0 +1,23 @@
+name = "family-ai-chat-shell"
+main = "src/index.ts"
+compatibility_date = "2026-09-07"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+binding = "ASSETS"
+directory = "./public"
+not_found_handling = "single-page-application"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[vars]
+WEBHOOK_SECRET_HEADER = "Authorization"
+REPLY_SECRET_HEADER = "Authorization"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "family-qa-chat"
+database_id = "REPLACE_AFTER_wrangler_d1_create"
+migrations_dir = "migrations"

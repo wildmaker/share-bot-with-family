@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>家人问问 AI</title>
+    <meta
+      name="description"
+      content="一个给家人共用的 AI 问答聊天壳，消息由 Cloudflare Worker 保存并转发给外部机器人。"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero" aria-labelledby="app-title">
+        <p class="eyebrow">给家人的小问答</p>
+        <h1 id="app-title">家人问问 AI</h1>
+        <p class="hero-copy">
+          输入名字、家庭口令和问题，先把消息安心放下。机器人想好后，回答会自动出现在这里。
+        </p>
+      </section>
+
+      <section class="identity-card" aria-label="聊天身份">
+        <label for="name-input">你的名字 <span aria-hidden="true">*</span></label>
+        <input
+          id="name-input"
+          name="name"
+          autocomplete="name"
+          required
+          maxlength="40"
+          placeholder="例如：妈妈、小明"
+        />
+
+        <label for="pass-input">家庭口令 <span aria-hidden="true">*</span></label>
+        <input
+          id="pass-input"
+          name="pass"
+          autocomplete="off"
+          maxlength="120"
+          placeholder="请输入家庭共享口令"
+          required
+          type="password"
+        />
+        <p id="identity-help" class="hint">家庭口令是必填项，只会发给同源 API，不会写入浏览器代码。</p>
+      </section>
+
+      <section class="chat-card" aria-label="聊天">
+        <div id="status-line" class="status-line" role="status" aria-live="polite">
+          先填名字和家庭口令，再开始提问吧。
+        </div>
+
+        <div id="message-list" class="message-list" aria-live="polite" aria-relevant="additions text">
+          <div class="empty-state">
+            <strong>今天想问点什么？</strong>
+            <span>可以问健康小知识、做饭灵感、旅行安排，或让机器人帮忙解释复杂事情。</span>
+          </div>
+        </div>
+
+        <form id="message-form" class="composer" autocomplete="off">
+          <label class="sr-only" for="question-input">输入问题</label>
+          <textarea
+            id="question-input"
+            name="question"
+            rows="2"
+            maxlength="1000"
+            placeholder="把问题写在这里..."
+            required
+          ></textarea>
+          <button id="send-button" type="submit">发送</button>
+        </form>
+      </section>
+    </main>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
